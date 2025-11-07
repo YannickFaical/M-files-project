@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -14,20 +16,22 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        // Mode mock pour tests locaux
         if (env('MFILES_MOCK', false)) {
-            $token = 'mock-token-' . bin2hex(random_bytes(6));
-            // Optionnel : stocker en session si besoin
-            try {
+            // Authentification Laravel user pour le mock
+            $user = User::where('email', $request->username)->first();
+            if ($user && Hash::check($request->password, $user->password)) {
+                $token = 'mock-token-' . bin2hex(random_bytes(6));
                 session()->put('mfiles_token', $token);
-            } catch (\Throwable $e) {
-                // ignore
+                return response()->json([
+                    'success' => true,
+                    'token' => $token,
+                    'mock' => true,
+                ]);
             }
             return response()->json([
-                'success' => true,
-                'token' => $token,
-                'mock' => true,
-            ]);
+                'success' => false,
+                'message' => 'Invalid test user credentials',
+            ], 401);
         }
 
         // Mode réel : appel à M-Files

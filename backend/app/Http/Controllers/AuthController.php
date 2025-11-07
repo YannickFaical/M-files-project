@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\MFilesService;
 use Illuminate\Http\Request;
-use GuzzleHttp\Exception\RequestException;
+use App\Services\MFilesService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 class AuthController extends Controller
 {
@@ -17,45 +18,45 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $request->validate([
-            'username' => 'required',
-            'password' => 'required'
-        ]);
-
         try {
+            // Mode mock actif
+            if (env('MFILES_MOCK', false)) {
+                return response()->json([
+                    'success' => true,
+                    'token' => 'mock-token-' . bin2hex(random_bytes(6)),
+                    'mock' => true
+                ]);
+            }
+
+            // Mode réel - appel à M-Files
             $result = $this->mfilesService->authenticate(
                 $request->username,
                 $request->password
             );
 
-            // Retour standardisé : success + token
             return response()->json([
                 'success' => true,
-                'token' => $result['Value'] ?? null,
-                'raw' => $result,
+                'token' => $result['Value'] ?? null
             ]);
-        } catch (RequestException $e) {
-            // Si M-Files a renvoyé une réponse, la renvoyer pour debug
-            if ($e->hasResponse()) {
-                $body = (string) $e->getResponse()->getBody();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'M-Files authentication error',
-                    'details' => $body,
-                ], 401);
-            }
 
+        } catch (\Exception $e) {
+            Log::error('Login error: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Authentication failed',
-                'details' => $e->getMessage(),
+                'error' => $e->getMessage()
             ], 401);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Authentication failed',
-                'details' => $e->getMessage(),
-            ], 500);
         }
+    }
+
+    public function logout()
+    {
+        Session::forget('mfiles_token');
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged out successfully'
+        ]);
     }
 }
