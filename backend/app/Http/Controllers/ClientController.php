@@ -1,31 +1,46 @@
 <?php
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
-use GuzzleHttp\Client;
+use App\Services\MFilesService;
 
 class ClientController extends Controller
 {
+    private $mfilesService;
+
+    public function __construct(MFilesService $mfilesService)
+    {
+        $this->mfilesService = $mfilesService;
+    }
+
     public function index()
     {
-        $client = new Client();
-        $response = $client->get(env('MFILES_BASE_URL')."/objects/0/0/latest");
-        return json_decode($response->getBody(), true);
+        try {
+            $data = $this->mfilesService->getClients();
+            return response()->json($data);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch clients',
+                'error' => $e->getMessage(),
+            ], 502);
+        }
     }
 
     public function store(Request $request)
     {
-        $client = new Client();
-        $response = $client->post(env('MFILES_BASE_URL')."/objects/0", [
-            'json' => [
-                'PropertyValues' => [
-                    [
-                        'PropertyDef' => 0, // Name or Title
-                        'TypedValue' => ['DataType' => 1, 'Value' => $request->name]
-                    ]
-                ]
-            ]
+        $request->validate([
+            'name' => 'required|string|min:1',
         ]);
 
-        return json_decode($response->getBody(), true);
+        try {
+            $data = $this->mfilesService->createClient($request->name);
+            return response()->json($data, 201);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create client',
+                'error' => $e->getMessage(),
+            ], 502);
+        }
     }
 }

@@ -3,14 +3,26 @@
 namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use Illuminate\Http\Middleware\HandleCors;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 class Kernel extends HttpKernel
 {
-    protected $routeMiddleware = [
-        'web' => \App\Http\Middleware\EncryptCookies::class . '\EncryptCookies',
-        'auth' => \App\Http\Middleware\Authenticate::class . '\Authenticate',
-        'auth.basic' => \Illuminate\Auth\Middleware\Authenticate::class . '\Authenticate',
-        'guest' => \App\Http\Middleware\EnsureGuest::class . '\EnsureGuest',
+    protected $middleware = [
+        HandleCors::class,
+    ];
+
+    protected $middlewareGroups = [
+        'web' => [
+            SubstituteBindings::class,
+        ],
+
+        'api' => [
+            SubstituteBindings::class,
+        ],
+    ];
+
+    protected $middlewareAliases = [
         'mfiles.auth' => \App\Http\Middleware\MFilesAuth::class,
     ];
 }
