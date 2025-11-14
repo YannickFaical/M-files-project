@@ -25,4 +25,9 @@ class Kernel extends HttpKernel
     protected $middlewareAliases = [
         'mfiles.auth' => \App\Http\Middleware\MFilesAuth::class,
     ];
+
+    // For compatibility with older resolution paths
+    protected $routeMiddleware = [
+        'mfiles.auth' => \App\Http\Middleware\MFilesAuth::class,
+    ];
 }

@@ -15,7 +15,7 @@ class MFilesAuth
             return $next($request);
         }
 
-        $token = $request->header('X-Authentication') ?? Session::get('mfiles_token');
+        $token = $request->header('X-Authentication') ?? $request->query('token') ?? Session::get('mfiles_token');
 
         if (empty($token)) {
             return response()->json([

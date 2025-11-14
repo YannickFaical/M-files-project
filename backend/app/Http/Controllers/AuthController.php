@@ -34,9 +34,27 @@ class AuthController extends Controller
                 $request->password
             );
 
+            $token = $result['Value'] ?? null;
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication failed',
+                    'error' => 'No token returned by M-Files',
+                ], 401);
+            }
+
+            // Probe minimal pour vérifier l'accès
+            if (!$this->mfilesService->probe($token)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication succeeded but access to vault resources is denied',
+                    'error' => 'Insufficient permissions or invalid vault configuration',
+                ], 401);
+            }
+
             return response()->json([
                 'success' => true,
-                'token' => $result['Value'] ?? null
+                'token' => $token
             ]);
 
         } catch (\Exception $e) {

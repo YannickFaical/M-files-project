@@ -12,11 +12,20 @@ class ClientController extends Controller
         $this->mfilesService = $mfilesService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $data = $this->mfilesService->getClients();
-            return response()->json($data);
+            $page = max(1, (int) $request->query('page', 1));
+            $perPage = max(1, (int) $request->query('perPage', 20));
+            $data = $this->mfilesService->getClients($page, $perPage);
+            $items = $data['Items'] ?? $data;
+            $count = is_array($items) ? count($items) : 0;
+            return response()->json([
+                'items' => $items,
+                'page' => $page,
+                'perPage' => $perPage,
+                'hasMore' => $count === $perPage,
+            ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -39,6 +48,51 @@ class ClientController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create client',
+                'error' => $e->getMessage(),
+            ], 502);
+        }
+    }
+
+    public function show(int $id)
+    {
+        try {
+            $data = $this->mfilesService->getClient($id);
+            return response()->json($data);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch client',
+                'error' => $e->getMessage(),
+            ], 502);
+        }
+    }
+
+    public function update(Request $request, int $id)
+    {
+        $request->validate([
+            'name' => 'required|string|min:1',
+        ]);
+        try {
+            $data = $this->mfilesService->updateClientName($id, $request->input('name'));
+            return response()->json($data);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update client',
+                'error' => $e->getMessage(),
+            ], 502);
+        }
+    }
+
+    public function destroy(int $id)
+    {
+        try {
+            $data = $this->mfilesService->deleteClient($id);
+            return response()->json($data);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete client',
                 'error' => $e->getMessage(),
             ], 502);
         }
